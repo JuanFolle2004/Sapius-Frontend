@@ -1,0 +1,7 @@
+import { Game } from '../types';
+import axios from 'axios';
+
+export const getGamesByFolder = async (folderId: string): Promise<Game[]> => {
+  const res = await axios.get(`/games/folder/${folderId}`);
+  return res.data;
+};
