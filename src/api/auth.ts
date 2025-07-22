@@ -1,10 +1,40 @@
-import API from "./api";
+// src/api/auth.ts
+import axios from 'axios';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+export const register = async (
+  email: string,
+  password: string,
+  birth_date: string,
+  name: string,
+  lastname: string,
+  phone: string
+) => {
+  const response = await axios.post(`${API_BASE}/users/users`, {
+    email,
+    password,
+    birthDate: birth_date,
+    name,
+    lastname,
+    phone,
+  });
+
+  return response.data;
+};
+
 
 export const login = async (email: string, password: string) => {
-  const form = new FormData();
-  form.append("username", email);
-  form.append("password", password);
+  const params = new URLSearchParams();
+  params.append('username', email);
+  params.append('password', password);
 
-  const res = await API.post("/users/login", form);
-  return res.data;
+  const response = await axios.post(`${API_BASE}/users/users/login`, params, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
+
+  return response.data; // contains access_token
 };
+

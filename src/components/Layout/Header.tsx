@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Bell, User, Zap, Trophy, GraduationCap } from 'lucide-react';
+import { Search, Bell, User, Zap, Trophy } from 'lucide-react';
 
 interface HeaderProps {
   user?: {
@@ -8,9 +8,10 @@ interface HeaderProps {
     xp: number;
     streak: number;
   };
+  onLogout: () => void;
 }
 
-export default function Header({ user }: HeaderProps) {
+export default function Header({ user, onLogout }: HeaderProps) {
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -35,7 +36,7 @@ export default function Header({ user }: HeaderProps) {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search courses or topics..."
+                placeholder="Search folders or topics..."
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all duration-200"
               />
             </div>
@@ -57,11 +58,11 @@ export default function Header({ user }: HeaderProps) {
                 </div>
               </>
             )}
-            
+
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell className="h-5 w-5 text-gray-600" />
             </button>
-            
+
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center">
                 {user?.avatar ? (
@@ -74,6 +75,14 @@ export default function Header({ user }: HeaderProps) {
                 <span className="text-sm font-medium text-gray-700">{user.name}</span>
               )}
             </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={onLogout}
+              className="ml-4 text-sm text-teal-600 hover:text-teal-800 font-semibold"
+            >
+              Log out
+            </button>
           </div>
         </div>
       </div>

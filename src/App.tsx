@@ -1,97 +1,109 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import Header from './components/Layout/Header';
 import Sidebar from './components/Layout/Sidebar';
 import Dashboard from './pages/Dashboard';
 import CourseGeneration from './pages/CourseGeneration';
 import QuizGame from './components/Game/QuizGame';
+import FolderPage from './pages/FolderPage';
 import Login from './pages/Login';
-import FolderPage from './pages/FolderPage'; // ✅ renders games from backend
+import Register from './pages/Register';
+import GamePage from './pages/GamePage';
+
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [currentPage, setCurrentPage] = useState('dashboard');
-  const [pageData, setPageData] = useState<any>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  const handleNavigation = (page: string, data?: any) => {
-    setCurrentPage(page);
-    setPageData(data);
-    if (page === 'generate') {
-      setActiveTab('generate');
-    }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsLoggedIn(false);
+    navigate('/login');
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsLoggedIn(!!token);
+  }, []);
+
+  // Navigation callbacks
+  const handleNavigate = (page: string, data?: any) => {
+    if (page === 'generate') setActiveTab('generate');
+    if (page === 'folder') navigate(`/folders/${data?.id}`);
+    else navigate(`/${page}`);
   };
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    setCurrentPage(tab);
-    setPageData(null);
+    navigate(`/${tab}`);
   };
 
-  const renderCurrentPage = () => {
-    switch (currentPage) {
-      case 'dashboard':
-        return <Dashboard onNavigate={handleNavigation} />;
-      case 'generate':
-        return <CourseGeneration onNavigate={handleNavigation} />;
-      case 'quiz-demo':
-        return (
-          <div className="p-6">
-            <QuizGame
-              game={{
-                id: 'mock',
-                folderId: 'mock_folder',
-                createdBy: 'mock_user',
-                createdAt: new Date().toISOString(),
-                order: 1,
-                question: 'What is the capital of France?',
-                options: ['Paris', 'London', 'Rome', 'Berlin'],
-                correctAnswer: 'Paris',
-                explanation: 'Paris is the capital of France.',
-              }}
-              onComplete={(correct) => {
-                console.log('Quiz completed:', correct);
-                setTimeout(() => {
-                  handleNavigation('dashboard');
-                }, 1000);
-              }}
-            />
-          </div>
-        );
-      case 'folder':
-        return <FolderPage folderId={pageData?.id} />;
-      default:
-        return (
-          <div className="p-6">
-            <div className="text-center py-12">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
-              </h2>
-              <p className="text-gray-600">This page is under construction</p>
-              <button
-                onClick={() => handleNavigation('dashboard')}
-                className="mt-4 text-teal-600 hover:text-teal-700 font-medium"
-              >
-                Back to Dashboard
-              </button>
-            </div>
-          </div>
-        );
-    }
-  };
+  // Route protection
+  if (!isLoggedIn && location.pathname !== '/register') {
+    return (
+      <Login
+        onLogin={(goTo?: string) => {
+          if (goTo === 'register') {
+            navigate('/register');
+          } else {
+            setIsLoggedIn(true);
+            navigate('/');
+          }
+        }}
+      />
+    );
+  }
 
-  if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  if (!isLoggedIn && location.pathname === '/register') {
+    return <Register onRegisterSuccess={() => navigate('/login')} />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <Header onLogout={handleLogout} />
       <div className="flex">
         <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
-        <main className="flex-1 min-h-screen">{renderCurrentPage()}</main>
+        <main className="flex-1 min-h-screen">
+          <Routes>
+            <Route path="/" element={<Dashboard onNavigate={handleNavigate} />} />
+            <Route path="/generate" element={<CourseGeneration onNavigate={handleNavigate} />} />
+            <Route path="/quiz-demo" element={
+              <div className="p-6">
+                <QuizGame
+                  game={{
+                    id: 'mock',
+                    folderId: 'mock_folder',
+                    createdBy: 'mock_user',
+                    createdAt: new Date().toISOString(),
+                    order: 1,
+                    question: 'What is the capital of France?',
+                    options: ['Paris', 'London', 'Rome', 'Berlin'],
+                    correctAnswer: 'Paris',
+                    explanation: 'Paris is the capital of France.',
+                  }}
+                  onComplete={(correct) => {
+                    console.log('Quiz completed:', correct);
+                    setTimeout(() => navigate('/'), 1000);
+                  }}
+                />
+              </div>
+            } />
+            <Route path="/folders/:folderId" element={<FolderPageWrapper />} />
+            <Route path="/games/:gameId" element={<GamePage />} />
+          </Routes>
+        </main>
       </div>
     </div>
   );
+}
+
+// Wrapper to pass folderId from route params to FolderPage
+import { useParams } from 'react-router-dom';
+function FolderPageWrapper() {
+  const { folderId } = useParams();
+  return <FolderPage folderId={folderId!} />;
 }
 
 export default App;

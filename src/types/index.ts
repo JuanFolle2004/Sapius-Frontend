@@ -18,5 +18,5 @@ export interface Game {
   folderId: string;
   createdAt: string;
   createdBy: string;
-  title?: string;
+  title: string;
 }
