@@ -6,6 +6,7 @@ export interface Folder {
   createdAt: string;
   gameIds: string[];
   parentId?: string;
+  prompt?: string;
 }
 
 export interface Game {

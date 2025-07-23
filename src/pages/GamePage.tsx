@@ -1,4 +1,3 @@
-// src/pages/GamePage.tsx
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useUser } from "../context/UserContext";
@@ -9,6 +8,7 @@ export default function GamePage() {
   const { gameId } = useParams();
   const { token } = useUser()!;
   const [game, setGame] = useState<Game | null>(null);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
 
   useEffect(() => {
     const loadGame = async () => {
@@ -25,16 +25,39 @@ export default function GamePage() {
 
   if (!game) return <p className="p-6">Loading game...</p>;
 
+  const isCorrect = selectedAnswer === game.correctAnswer;
+
   return (
     <div className="p-6 max-w-xl mx-auto">
       <h2 className="text-2xl font-bold mb-4">Game</h2>
-      <p className="text-lg font-medium mb-2">{game.question}</p>
+      <p className="text-lg font-medium mb-4">{game.question}</p>
       <ul className="space-y-2">
-        {game.options.map((opt, idx) => (
-          <li key={idx} className="bg-gray-100 rounded p-2">{opt}</li>
-        ))}
+        {game.options.map((opt, idx) => {
+          let bg = "bg-gray-100";
+          if (selectedAnswer) {
+            if (opt === game.correctAnswer) bg = "bg-green-200";
+            else if (opt === selectedAnswer) bg = "bg-red-200";
+          }
+
+          return (
+            <li
+              key={idx}
+              onClick={() => {
+                if (!selectedAnswer) setSelectedAnswer(opt);
+              }}
+              className={`rounded p-2 cursor-pointer transition ${bg}`}
+            >
+              {opt}
+            </li>
+          );
+        })}
       </ul>
-      <p className="text-sm text-gray-500 mt-4">Explanation: {game.explanation}</p>
+
+      {selectedAnswer && (
+        <p className="text-sm text-gray-700 mt-4 italic">
+          Explanation: {game.explanation}
+        </p>
+      )}
     </div>
   );
 }

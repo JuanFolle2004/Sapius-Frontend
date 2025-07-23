@@ -15,7 +15,7 @@ export const getGamesByFolder = async (folderId: string, token: string): Promise
 };
 
 export const getGameById = async (gameId: string, token: string): Promise<Game> => {
-  const res = await axios.get(`${API_BASE}/games/${gameId}`, {
+  const res = await axios.get(`${API_BASE}/games/games/${gameId}`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },

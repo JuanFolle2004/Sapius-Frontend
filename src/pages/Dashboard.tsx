@@ -1,3 +1,4 @@
+// src/pages/Dashboard.tsx
 import React, { useEffect, useState } from 'react';
 import { getUserFolders } from '../services/folderService';
 import FolderCard from '../components/Folder/FolderCard';
@@ -7,7 +8,7 @@ interface DashboardProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
-export default function Dashboard({ onNavigate }: DashboardProps) {
+const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [folders, setFolders] = useState<Folder[]>([]);
   const token = localStorage.getItem('token');
 
@@ -28,11 +29,13 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
             key={folder.id}
             folder={folder}
             courseCount={folder.gameIds?.length || 0}
-            progress={0.4} // Placeholder until you compute progress dynamically
+            progress={0.4}
             onClick={() => onNavigate('folder', folder)}
           />
         ))}
       </div>
     </div>
   );
-}
+};
+
+export default Dashboard;

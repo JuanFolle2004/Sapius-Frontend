@@ -11,7 +11,7 @@ export const register = async (
   lastname: string,
   phone: string
 ) => {
-  const response = await axios.post(`${API_BASE}/users/users`, {
+  const response = await axios.post(`${API_BASE}/users/register`, {
     email,
     password,
     birthDate: birth_date,
@@ -29,7 +29,7 @@ export const login = async (email: string, password: string) => {
   params.append('username', email);
   params.append('password', password);
 
-  const response = await axios.post(`${API_BASE}/users/users/login`, params, {
+  const response = await axios.post(`${API_BASE}/users/login`, params, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },
