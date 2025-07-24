@@ -1,15 +1,16 @@
 import React from 'react';
-import { Search, Bell, User, Zap, Trophy } from 'lucide-react';
+import { Search, Bell, User } from 'lucide-react';
 
 interface HeaderProps {
   user?: {
-    name: string;
-    avatar?: string;
-    xp: number;
-    streak: number;
+    email?: string;
+    name?: string;
+    lastName?: string;
+    sub?: string;
   };
   onLogout: () => void;
 }
+
 
 export default function Header({ user, onLogout }: HeaderProps) {
   return (
@@ -30,7 +31,7 @@ export default function Header({ user, onLogout }: HeaderProps) {
             </div>
           </div>
 
-          {/* Search */}
+          {/* Search Bar */}
           <div className="flex-1 max-w-lg mx-8">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -42,38 +43,21 @@ export default function Header({ user, onLogout }: HeaderProps) {
             </div>
           </div>
 
-          {/* User Actions */}
+          {/* User Section */}
           <div className="flex items-center space-x-4">
-            {user && (
-              <>
-                <div className="flex items-center space-x-4 text-sm">
-                  <div className="flex items-center space-x-1 bg-orange-50 px-3 py-1 rounded-full">
-                    <Zap className="h-4 w-4 text-orange-500" />
-                    <span className="font-semibold text-orange-700">{user.xp}</span>
-                  </div>
-                  <div className="flex items-center space-x-1 bg-red-50 px-3 py-1 rounded-full">
-                    <Trophy className="h-4 w-4 text-red-500" />
-                    <span className="font-semibold text-red-700">{user.streak}</span>
-                  </div>
-                </div>
-              </>
-            )}
-
             <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
               <Bell className="h-5 w-5 text-gray-600" />
             </button>
 
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-teal-500 rounded-full flex items-center justify-center">
-                {user?.avatar ? (
-                  <img src={user.avatar} alt="Profile" className="w-8 h-8 rounded-full" />
-                ) : (
-                  <User className="h-4 w-4 text-white" />
-                )}
+                <User className="h-4 w-4 text-white" />
               </div>
-              {user && (
-                <span className="text-sm font-medium text-gray-700">{user.name}</span>
-              )}
+                {(user?.name || user?.lastName) && (
+                  <span className="text-sm font-medium text-gray-700">
+                    {user?.name} {user?.lastName}
+                  </span>
+                )}
             </div>
 
             {/* Logout Button */}

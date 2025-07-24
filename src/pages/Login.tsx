@@ -1,6 +1,7 @@
 // src/pages/Login.tsx
 import { useState } from "react";
 import { login } from "../api/auth";
+import { setAuthToken } from "../services/api"; // ✅ at the top
 
 interface LoginProps {
   onLogin: (goTo?: string) => void;
@@ -20,6 +21,7 @@ export default function Login({ onLogin }: LoginProps) {
       console.log("Saving token:", res.access_token); // ✅ Step 2
 
       localStorage.setItem("token", res.access_token);
+      setAuthToken(res.access_token); // ✅ THIS LINE IS CRUCIAL
       onLogin(); // triggers app to switch to logged-in view
     } catch (err) {
       setError("Login failed. Check credentials.");

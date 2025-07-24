@@ -42,7 +42,6 @@ const handleGenerate = async () => {
       topic,
       `AI-generated course on ${topic}`,
       `Create quiz questions about ${topic} for ${difficulty} learners, covering ${focusArea} in ${duration} minutes.`,
-      token
     );
 
     console.log("📁 Folder created:", folder);

@@ -1,4 +1,3 @@
-// src/App.tsx
 import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import Header from './components/Layout/Header';
@@ -10,18 +9,27 @@ import FolderPage from './pages/FolderPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import GamePage from './pages/GamePage';
-import { setAuthToken } from './services/api'; // ✅ NEW: import this
+import { setAuthToken } from './services/api';
+import { decodeToken } from './utils/jwt';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userInfo, setUserInfo] = useState<{
+  email?: string;
+  name?: string;
+  lastName?: string;
+  sub?: string;
+} | undefined>(undefined);
+
   const location = useLocation();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsLoggedIn(false);
-    setAuthToken(''); // ✅ Clear from axios too
+    setUserInfo(undefined);
+    setAuthToken('');
     navigate('/login');
   };
 
@@ -29,14 +37,35 @@ function App() {
     const token = localStorage.getItem('token');
     if (token) {
       setIsLoggedIn(true);
-      setAuthToken(token); // ✅ Apply token globally to axios
+      setAuthToken(token);
+      const decoded = decodeToken(token);
+      console.log("🧾 Decoded token:", decoded); // Agregue yo
+      if (decoded) {
+        setUserInfo({
+        email: decoded.email,
+        name: decoded.name,        // ✅ Here
+        lastName: decoded.lastName, // ✅ And here
+        sub: decoded.sub,
+      });
+      }
     }
   }, []);
 
   const handleNavigate = (page: string, data?: any) => {
-    if (page === 'generate') setActiveTab('generate');
-    if (page === 'folder') navigate(`/folders/${data?.id}`);
-    else navigate(`/${page}`);
+    if (page === 'generate') {
+      setActiveTab('generate');
+      navigate('/generate');
+    } else if (page === 'folder') {
+      if (!data?.folder?.id && !data?.id) {
+        console.error("❌ No folder ID provided in navigation data:", data);
+        alert("Something went wrong. No folder ID to navigate.");
+        return;
+      }
+      const folderId = data?.folder?.id || data?.id;
+      navigate(`/folders/${folderId}`);
+    } else {
+      navigate(`/${page}`);
+    }
   };
 
   const handleTabChange = (tab: string) => {
@@ -53,7 +82,13 @@ function App() {
           if (goTo === 'register') navigate('/register');
           else {
             const token = localStorage.getItem('token');
-            if (token) setAuthToken(token); // ✅ apply after login
+            if (token) {
+              setAuthToken(token);
+              const decoded = decodeToken(token);
+              if (decoded) {
+                setUserInfo({ email: decoded.email, sub: decoded.sub });
+              }
+            }
             setIsLoggedIn(true);
             navigate('/');
           }
@@ -68,56 +103,56 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onLogout={handleLogout} />
+      <Header onLogout={handleLogout} user={userInfo} />
       <div className="flex">
         <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
         <main className="flex-1 min-h-screen">
           <Routes>
             <Route path="/" element={<Dashboard onNavigate={handleNavigate} />} />
             <Route path="/generate" element={<CourseGeneration onNavigate={handleNavigate} />} />
-            <Route
-              path="/quiz-demo"
-              element={
-                <div className="p-6">
-                  <QuizGame
-                    game={{
-                      id: 'mock',
-                      folderId: 'mock_folder',
-                      createdBy: 'mock_user',
-                      createdAt: new Date().toISOString(),
-                      order: 1,
-                      title: 'Geography question',
-                      question: 'What is the capital of France?',
-                      options: ['Paris', 'London', 'Rome', 'Berlin'],
-                      correctAnswer: 'Paris',
-                      explanation: 'Paris is the capital of France.',
-                    }}
-                    onComplete={(correct) => {
-                      console.log('Quiz completed:', correct);
-                      setTimeout(() => navigate('/'), 1000);
-                    }}
-                  />
-                </div>
-              }
-            />
-            <Route path="/folders/:folderId" element={<FolderPageWrapper />} />
-            <Route path="/games/:gameId" element={<GamePage />} />
-            <Route
-              path="/login"
-              element={
-                <Login
-                  onLogin={(goTo?: string) => {
-                    if (goTo === 'register') navigate('/register');
-                    else {
-                      const token = localStorage.getItem('token');
-                      if (token) setAuthToken(token); // ✅ re-apply
-                      setIsLoggedIn(true);
-                      navigate('/');
-                    }
+            <Route path="/quiz-demo" element={
+              <div className="p-6">
+                <QuizGame
+                  game={{
+                    id: 'mock',
+                    folderId: 'mock_folder',
+                    createdBy: 'mock_user',
+                    createdAt: new Date().toISOString(),
+                    order: 1,
+                    title: 'Geography question',
+                    question: 'What is the capital of France?',
+                    options: ['Paris', 'London', 'Rome', 'Berlin'],
+                    correctAnswer: 'Paris',
+                    explanation: 'Paris is the capital of France.',
+                  }}
+                  onComplete={(correct) => {
+                    console.log('Quiz completed:', correct);
+                    setTimeout(() => navigate('/'), 1000);
                   }}
                 />
-              }
-            />
+              </div>
+            } />
+            <Route path="/folders/:folderId" element={<FolderPageWrapper />} />
+            <Route path="/games/:gameId" element={<GamePage />} />
+            <Route path="/login" element={
+              <Login
+                onLogin={(goTo?: string) => {
+                  if (goTo === 'register') navigate('/register');
+                  else {
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                      setAuthToken(token);
+                      const decoded = decodeToken(token);
+                      if (decoded) {
+                        setUserInfo({ email: decoded.email, sub: decoded.sub });
+                      }
+                    }
+                    setIsLoggedIn(true);
+                    navigate('/');
+                  }
+                }}
+              />
+            } />
             <Route path="/register" element={<Register onRegisterSuccess={() => navigate('/login')} />} />
           </Routes>
         </main>
@@ -126,13 +161,10 @@ function App() {
   );
 }
 
-// Wrapper to extract folderId param
+// Wrapper for dynamic folder page
 function FolderPageWrapper() {
   const { folderId } = useParams();
   return <FolderPage folderId={folderId!} />;
 }
 
 export default App;
-
-
-
