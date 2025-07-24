@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Sparkles, BookOpen, Clock, Zap, ArrowRight, Brain, Target, Users } from 'lucide-react';
+import { createFolderWithGames } from "../services/folderService";
 
 interface CourseGenerationProps {
   onNavigate: (page: string, data?: any) => void;
@@ -23,23 +24,39 @@ export default function CourseGeneration({ onNavigate }: CourseGenerationProps) 
     'Climate Science'
   ];
   
-  const handleGenerate = async () => {
-    if (!topic.trim()) return;
-    
-    setIsGenerating(true);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsGenerating(false);
-      // Navigate to generated course preview
-      onNavigate('course-preview', {
-        topic,
-        difficulty,
-        duration,
-        focusArea
-      });
-    }, 3000);
-  };
+
+
+const handleGenerate = async () => {
+  if (!topic.trim()) return;
+
+  setIsGenerating(true);
+
+  const token = localStorage.getItem("token");
+  if (!token) {
+    alert("You must be logged in.");
+    return;
+  }
+
+  try {
+    const { folder, games } = await createFolderWithGames(
+      topic,
+      `AI-generated course on ${topic}`,
+      `Create quiz questions about ${topic} for ${difficulty} learners, covering ${focusArea} in ${duration} minutes.`,
+      token
+    );
+
+    console.log("📁 Folder created:", folder);
+    console.log("🎮 Games generated:", games);
+
+    onNavigate("folder", { folder, games }); // redirect to new folder
+  } catch (err) {
+    console.error("❌ Error generating folder with games:", err);
+    alert("There was a problem generating your course.");
+  } finally {
+    setIsGenerating(false);
+  }
+};
+
   
   return (
     <div className="p-6 max-w-4xl mx-auto">

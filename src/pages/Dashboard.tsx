@@ -3,22 +3,23 @@ import React, { useEffect, useState } from 'react';
 import { getUserFolders } from '../services/folderService';
 import FolderCard from '../components/Folder/FolderCard';
 import { Folder } from '../types';
+import { useUser } from '../context/UserContext'; // ✅ Import context
 
 interface DashboardProps {
   onNavigate: (page: string, data?: any) => void;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
+  const userContext = useUser(); // might be null
   const [folders, setFolders] = useState<Folder[]>([]);
-  const token = localStorage.getItem('token');
 
   useEffect(() => {
-    if (token) {
-      getUserFolders(token)
-        .then(setFolders)
-        .catch((err) => console.error('Error fetching folders:', err));
-    }
-  }, [token]);
+    if (!userContext?.token) return; // ✅ Only run when token is available
+
+    getUserFolders()
+      .then(setFolders)
+      .catch((err) => console.error('Error fetching folders:', err));
+  }, [userContext?.token]); // ✅ Effect depends on token
 
   return (
     <div className="p-6">

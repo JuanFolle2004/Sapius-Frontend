@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useUser } from "../context/UserContext";
 import { Game } from "../types";
 import { getGameById } from "../services/gameService";
 
 export default function GamePage() {
   const { gameId } = useParams();
+  const navigate = useNavigate();
   const { token } = useUser()!;
   const [game, setGame] = useState<Game | null>(null);
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
@@ -58,6 +59,13 @@ export default function GamePage() {
           Explanation: {game.explanation}
         </p>
       )}
+
+      <button
+        onClick={() => navigate(`/folders/${game.folderId}`)}
+        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+      >
+        Back to Folder
+      </button>
     </div>
   );
 }

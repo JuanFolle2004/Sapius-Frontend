@@ -1,10 +1,12 @@
-// src/pages/FolderPage.tsx
 import React, { useEffect, useState } from 'react';
 import { useUser } from '../context/UserContext';
 import { fetchFolderDetails } from '../services/folderService';
 import { Game, Folder } from '../types';
 import { useNavigate } from 'react-router-dom';
+import { setAuthToken } from '../services/api';
 import axios from 'axios';
+import api from '../services/api';
+
 
 interface FolderPageProps {
   folderId: string;
@@ -21,14 +23,18 @@ export default function FolderPage({ folderId }: FolderPageProps) {
 
   const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+  // Set token globally once
   useEffect(() => {
-    if (token) loadFolder();
+    if (token) {
+      setAuthToken(token);  // ✅ ensures axios calls include the token
+      loadFolder();
+    }
   }, [folderId, token]);
 
   const loadFolder = async () => {
     try {
       setLoading(true);
-      const { folder, games } = await fetchFolderDetails(folderId, token);
+      const { folder, games } = await fetchFolderDetails(folderId);
       setFolder(folder);
       setGames(games);
     } catch (err) {
@@ -40,22 +46,19 @@ export default function FolderPage({ folderId }: FolderPageProps) {
   };
 
   const handleGenerateGames = async () => {
-    if (!token || !folderId) return;
-    try {
-      setGenerating(true);
-      await axios.post(
-        `${API_BASE}/ai/generate-games`,
-        { folderId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      await loadFolder(); // refresh with new games
-    } catch (err) {
-      console.error("Error generating games:", err);
-      setError("Failed to generate games.");
-    } finally {
-      setGenerating(false);
-    }
-  };
+  if (!folderId) return;
+  try {
+    setGenerating(true);
+    await api.post(`/ai/ai/generate-from-folder/${folderId}`);
+    await loadFolder(); // reload updated game list
+  } catch (err) {
+    console.error("Error generating games:", err);
+    setError("Failed to generate games.");
+  } finally {
+    setGenerating(false);
+  }
+};
+
 
   if (loading) return <p className="p-6">Loading folder...</p>;
   if (error) return <p className="p-6 text-red-500">{error}</p>;

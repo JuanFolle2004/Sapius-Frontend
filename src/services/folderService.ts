@@ -1,33 +1,44 @@
-import axios from 'axios';
+// src/services/folderService.ts
+import api from './api';
 import { Folder, Game } from '../types';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
-export const getUserFolders = async (token: string): Promise<Folder[]> => {
-  const response = await axios.get(`${API_BASE}/folders`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+export const getUserFolders = async (): Promise<Folder[]> => {
+  const response = await api.get('/folders');
   return response.data;
 };
 
 export const fetchFolderDetails = async (
-  folderId: string,
-  token: string
+  folderId: string
 ): Promise<{ folder: Folder; games: Game[] }> => {
-  const response = await axios.get(`${API_BASE}/folders/${folderId}/with-games`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  console.log("📦 Folder response from API:", response.data);
-
-  return {
-    folder: response.data.folder,
-    games: response.data.games,
-  };
+  try {
+    const response = await api.get(`/folders/${folderId}/with-games`);
+    console.log("📦 Folder response from API:", response.data);
+    return {
+      folder: response.data.folder,
+      games: response.data.games,
+    };
+  } catch (error: any) {
+    console.error("🚨 Failed to fetch folder:", error.response?.data || error.message);
+    throw error;
+  }
 };
 
+export const createFolderWithGames = async (
+  title: string,
+  description: string,
+  prompt: string
+): Promise<{ folder: Folder; games: Game[] }> => {
+  const folderRes = await api.post('/folders', {
+    title,
+    description,
+    prompt,
+  });
 
+  const folderId = folderRes.data.id;
+  const gamesRes = await api.post(`/ai/ai/generate-from-folder/${folderId}`);
+
+  return {
+    folder: folderRes.data,
+    games: gamesRes.data,
+  };
+};

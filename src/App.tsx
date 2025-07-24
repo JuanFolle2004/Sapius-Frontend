@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, useParams } from 'react-router-dom';
 import Header from './components/Layout/Header';
@@ -9,6 +10,7 @@ import FolderPage from './pages/FolderPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import GamePage from './pages/GamePage';
+import { setAuthToken } from './services/api'; // ✅ NEW: import this
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -19,12 +21,16 @@ function App() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     setIsLoggedIn(false);
-    navigate('/login'); // ✅ This now works
+    setAuthToken(''); // ✅ Clear from axios too
+    navigate('/login');
   };
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    setIsLoggedIn(!!token);
+    if (token) {
+      setIsLoggedIn(true);
+      setAuthToken(token); // ✅ Apply token globally to axios
+    }
   }, []);
 
   const handleNavigate = (page: string, data?: any) => {
@@ -34,23 +40,20 @@ function App() {
   };
 
   const handleTabChange = (tab: string) => {
-  setActiveTab(tab);
-  if (tab === 'dashboard') {
-    navigate('/'); // ✅ Go to folders view
-  } else {
-    navigate(`/${tab}`);
-  }
-};
+    setActiveTab(tab);
+    if (tab === 'dashboard') navigate('/');
+    else navigate(`/${tab}`);
+  };
 
-
-  // 🔐 Route protection with manual rendering
+  // 🔐 Route protection
   if (!isLoggedIn && location.pathname !== '/register') {
     return (
       <Login
         onLogin={(goTo?: string) => {
-          if (goTo === 'register') {
-            navigate('/register');
-          } else {
+          if (goTo === 'register') navigate('/register');
+          else {
+            const token = localStorage.getItem('token');
+            if (token) setAuthToken(token); // ✅ apply after login
             setIsLoggedIn(true);
             navigate('/');
           }
@@ -83,7 +86,7 @@ function App() {
                       createdBy: 'mock_user',
                       createdAt: new Date().toISOString(),
                       order: 1,
-                      title: 'Geography quetion',
+                      title: 'Geography question',
                       question: 'What is the capital of France?',
                       options: ['Paris', 'London', 'Rome', 'Berlin'],
                       correctAnswer: 'Paris',
@@ -99,8 +102,6 @@ function App() {
             />
             <Route path="/folders/:folderId" element={<FolderPageWrapper />} />
             <Route path="/games/:gameId" element={<GamePage />} />
-
-            {/* ✅ These prevent router errors when using navigate('/login') */}
             <Route
               path="/login"
               element={
@@ -108,6 +109,8 @@ function App() {
                   onLogin={(goTo?: string) => {
                     if (goTo === 'register') navigate('/register');
                     else {
+                      const token = localStorage.getItem('token');
+                      if (token) setAuthToken(token); // ✅ re-apply
                       setIsLoggedIn(true);
                       navigate('/');
                     }
@@ -115,14 +118,7 @@ function App() {
                 />
               }
             />
-            <Route
-              path="/register"
-              element={
-                <Register
-                  onRegisterSuccess={() => navigate('/login')}
-                />
-              }
-            />
+            <Route path="/register" element={<Register onRegisterSuccess={() => navigate('/login')} />} />
           </Routes>
         </main>
       </div>
@@ -130,10 +126,13 @@ function App() {
   );
 }
 
-// Wrapper to pass folderId to FolderPage
+// Wrapper to extract folderId param
 function FolderPageWrapper() {
   const { folderId } = useParams();
   return <FolderPage folderId={folderId!} />;
 }
 
 export default App;
+
+
+
