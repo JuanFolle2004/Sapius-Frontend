@@ -6,7 +6,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 export const register = async (
   email: string,
   password: string,
-  birth_date: string,
+  birthDate: string, // ✅ FIXED: camelCase
   name: string,
   lastname: string,
   phone: string
@@ -14,7 +14,7 @@ export const register = async (
   const response = await axios.post(`${API_BASE}/users/register`, {
     email,
     password,
-    birthDate: birth_date,
+    birthDate,  // ✅ camelCase used consistently
     name,
     lastname,
     phone,
@@ -24,12 +24,13 @@ export const register = async (
 };
 
 
+
 export const login = async (email: string, password: string) => {
   const params = new URLSearchParams();
   params.append('username', email);
   params.append('password', password);
 
-  const response = await axios.post(`${API_BASE}/users/login`, params, {
+  const response = await axios.post(`${API_BASE}/login`, params, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },

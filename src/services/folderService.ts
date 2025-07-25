@@ -1,4 +1,3 @@
-// src/services/folderService.ts
 import api from './api';
 import { Folder, Game } from '../types';
 
@@ -35,7 +34,7 @@ export const createFolderWithGames = async (
   });
 
   const folderId = folderRes.data.id;
-  const gamesRes = await api.post(`/ai/ai/generate-from-folder/${folderId}`);
+  const gamesRes = await api.post(`/ai/generate-from-folder/${folderId}`);
 
   return {
     folder: folderRes.data,

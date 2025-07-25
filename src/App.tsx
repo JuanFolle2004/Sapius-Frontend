@@ -15,12 +15,13 @@ import { decodeToken } from './utils/jwt';
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // 🆕
   const [userInfo, setUserInfo] = useState<{
-  email?: string;
-  name?: string;
-  lastName?: string;
-  sub?: string;
-} | undefined>(undefined);
+    email?: string;
+    name?: string;
+    lastName?: string;
+    sub?: string;
+  } | undefined>(undefined);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -36,19 +37,19 @@ function App() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      setIsLoggedIn(true);
       setAuthToken(token);
       const decoded = decodeToken(token);
-      console.log("🧾 Decoded token:", decoded); // Agregue yo
       if (decoded) {
         setUserInfo({
-        email: decoded.email,
-        name: decoded.name,        // ✅ Here
-        lastName: decoded.lastName, // ✅ And here
-        sub: decoded.sub,
-      });
+          email: decoded.email,
+          name: decoded.name,
+          lastName: decoded.lastName,
+          sub: decoded.sub,
+        });
+        setIsLoggedIn(true);
       }
     }
+    setIsLoading(false); // 🆕 done loading token
   }, []);
 
   const handleNavigate = (page: string, data?: any) => {
@@ -74,7 +75,9 @@ function App() {
     else navigate(`/${tab}`);
   };
 
-  // 🔐 Route protection
+  // 🔐 Protected Route Guard
+  if (isLoading) return <div>Loading...</div>;
+
   if (!isLoggedIn && location.pathname !== '/register') {
     return (
       <Login
@@ -86,7 +89,12 @@ function App() {
               setAuthToken(token);
               const decoded = decodeToken(token);
               if (decoded) {
-                setUserInfo({ email: decoded.email, sub: decoded.sub });
+                setUserInfo({
+                  email: decoded.email,
+                  name: decoded.name,
+                  lastName: decoded.lastName,
+                  sub: decoded.sub,
+                });
               }
             }
             setIsLoggedIn(true);
@@ -144,7 +152,12 @@ function App() {
                       setAuthToken(token);
                       const decoded = decodeToken(token);
                       if (decoded) {
-                        setUserInfo({ email: decoded.email, sub: decoded.sub });
+                        setUserInfo({
+                          email: decoded.email,
+                          name: decoded.name,
+                          lastName: decoded.lastName,
+                          sub: decoded.sub,
+                        });
                       }
                     }
                     setIsLoggedIn(true);
@@ -161,7 +174,6 @@ function App() {
   );
 }
 
-// Wrapper for dynamic folder page
 function FolderPageWrapper() {
   const { folderId } = useParams();
   return <FolderPage folderId={folderId!} />;

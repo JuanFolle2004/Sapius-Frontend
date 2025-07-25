@@ -4,9 +4,7 @@ import { fetchFolderDetails } from '../services/folderService';
 import { Game, Folder } from '../types';
 import { useNavigate } from 'react-router-dom';
 import { setAuthToken } from '../services/api';
-import axios from 'axios';
 import api from '../services/api';
-
 
 interface FolderPageProps {
   folderId: string;
@@ -17,48 +15,47 @@ export default function FolderPage({ folderId }: FolderPageProps) {
   const [folder, setFolder] = useState<Folder | null>(null);
   const [games, setGames] = useState<Game[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
-
-  // Set token globally once
+  // ✅ Refactored: useEffect only runs once token and folderId exist
   useEffect(() => {
-    if (token) {
-      setAuthToken(token);  // ✅ ensures axios calls include the token
-      loadFolder();
-    }
+    if (!token || !folderId) return;
+
+    const fetchData = async () => {
+      try {
+        setAuthToken(token); // ✅ Set the token first
+        const { folder, games } = await fetchFolderDetails(folderId);
+        setFolder(folder);
+        setGames(games);
+      } catch (err) {
+        console.error('Error fetching folder:', err);
+        setError('Failed to load folder.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [folderId, token]);
 
-  const loadFolder = async () => {
+  const handleGenerateGames = async () => {
+    if (!folderId) return;
     try {
-      setLoading(true);
+      setGenerating(true);
+      await api.post(`/ai/generate-from-folder/${folderId}`);
+      // Refresh folder after generating
       const { folder, games } = await fetchFolderDetails(folderId);
       setFolder(folder);
       setGames(games);
     } catch (err) {
-      console.error('Error fetching folder:', err);
-      setError("Failed to load folder.");
+      console.error("Error generating games:", err);
+      setError("Failed to generate games.");
     } finally {
-      setLoading(false);
+      setGenerating(false);
     }
   };
-
-  const handleGenerateGames = async () => {
-  if (!folderId) return;
-  try {
-    setGenerating(true);
-    await api.post(`/ai/ai/generate-from-folder/${folderId}`);
-    await loadFolder(); // reload updated game list
-  } catch (err) {
-    console.error("Error generating games:", err);
-    setError("Failed to generate games.");
-  } finally {
-    setGenerating(false);
-  }
-};
-
 
   if (loading) return <p className="p-6">Loading folder...</p>;
   if (error) return <p className="p-6 text-red-500">{error}</p>;
