@@ -11,7 +11,7 @@ export const register = async (
   lastname: string,
   phone: string
 ) => {
-  const response = await axios.post(`${API_BASE}/users/register`, {
+  const response = await axios.post(`${API_BASE}/register`, {
     email,
     password,
     birthDate,  // ✅ camelCase used consistently
