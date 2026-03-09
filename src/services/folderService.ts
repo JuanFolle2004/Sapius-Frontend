@@ -1,5 +1,6 @@
 import api from './api';
 import { Folder, Game } from '../types';
+import axios from '../utils/axios';
 
 export const getUserFolders = async (): Promise<Folder[]> => {
   const response = await api.get('/folders');
@@ -22,22 +23,22 @@ export const fetchFolderDetails = async (
   }
 };
 
-export const createFolderWithGames = async (
+export const createFolder = async (
   title: string,
   description: string,
   prompt: string
-): Promise<{ folder: Folder; games: Game[] }> => {
+): Promise<Folder> => {
   const folderRes = await api.post('/folders', {
     title,
     description,
     prompt,
   });
 
-  const folderId = folderRes.data.id;
-  const gamesRes = await api.post(`/ai/generate-from-folder/${folderId}`);
-
-  return {
-    folder: folderRes.data,
-    games: gamesRes.data,
-  };
+  return folderRes.data; // ✅ only folder, no games here
 };
+
+
+// Delete folder and all its games @router.delete("/delete/{folder_id}")
+export const deleteFolder = async (folderId: string): Promise<void> => {
+  await api.delete(`/folders/delete/${folderId}`);
+}

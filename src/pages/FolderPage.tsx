@@ -19,13 +19,12 @@ export default function FolderPage({ folderId }: FolderPageProps) {
   const [generating, setGenerating] = useState(false);
   const navigate = useNavigate();
 
-  // ✅ Refactored: useEffect only runs once token and folderId exist
   useEffect(() => {
     if (!token || !folderId) return;
 
     const fetchData = async () => {
       try {
-        setAuthToken(token); // ✅ Set the token first
+        setAuthToken(token);
         const { folder, games } = await fetchFolderDetails(folderId);
         setFolder(folder);
         setGames(games);
@@ -44,8 +43,7 @@ export default function FolderPage({ folderId }: FolderPageProps) {
     if (!folderId) return;
     try {
       setGenerating(true);
-      await api.post(`/ai/generate-from-folder/${folderId}`);
-      // Refresh folder after generating
+      await api.post(`/ai/generate-from-folder/${folderId}`, {});
       const { folder, games } = await fetchFolderDetails(folderId);
       setFolder(folder);
       setGames(games);
@@ -54,6 +52,17 @@ export default function FolderPage({ folderId }: FolderPageProps) {
       setError("Failed to generate games.");
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const handleDeleteFolder = async () => {
+    if (!folderId) return;
+    try {
+      await api.delete(`/folders/delete/${folderId}`);
+      navigate('/');
+    } catch (err) {
+      console.error("Error deleting folder:", err);
+      setError("Failed to delete folder.");
     }
   };
 
@@ -68,13 +77,21 @@ export default function FolderPage({ folderId }: FolderPageProps) {
           <h1 className="text-3xl font-bold text-gray-900">{folder.title}</h1>
           <p className="text-gray-700">{folder.description}</p>
         </div>
-        <button
-          onClick={handleGenerateGames}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50"
-          disabled={generating}
-        >
-          {generating ? "Generating..." : "Generate 3 Games"}
-        </button>
+        <div className="flex space-x-4">
+          <button
+            onClick={handleGenerateGames}
+            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition disabled:opacity-50"
+            disabled={generating}
+          >
+            {generating ? "Generating..." : "Generate 3 Games"}
+          </button>
+          <button
+            onClick={handleDeleteFolder}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+          >
+            Delete Folder
+          </button>
+        </div>
       </div>
 
       {games.length === 0 ? (

@@ -1,6 +1,7 @@
-import React, { useState } from 'react'
-import { Sparkles, BookOpen, Clock, Zap, ArrowRight, Brain, Target, Users } from 'lucide-react';
-import { createFolderWithGames } from "../services/folderService";
+import React, { useState } from 'react';
+import { Sparkles, ArrowRight, Brain, Target, Users } from 'lucide-react';
+import { createFolder } from '../services/folderService';
+import { generateGamesFromFolder, CourseDifficulty, UiDifficulty } from '../services/aiService';
 
 interface CourseGenerationProps {
   onNavigate: (page: string, data?: any) => void;
@@ -8,11 +9,12 @@ interface CourseGenerationProps {
 
 export default function CourseGeneration({ onNavigate }: CourseGenerationProps) {
   const [topic, setTopic] = useState('');
-  const [difficulty, setDifficulty] = useState('beginner');
+  const [courseDifficulty, setCourseDifficulty] = useState<CourseDifficulty>('beginner');
+  const [uiDifficulty, setUiDifficulty] = useState<UiDifficulty>('same');
   const [duration, setDuration] = useState('15');
   const [focusArea, setFocusArea] = useState('general');
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   const suggestedTopics = [
     'Machine Learning Basics',
     'Ancient History',
@@ -21,42 +23,58 @@ export default function CourseGeneration({ onNavigate }: CourseGenerationProps) 
     'Financial Literacy',
     'Web Development',
     'Psychology Principles',
-    'Climate Science'
+    'Climate Science',
   ];
-  
 
+  const handleGenerate = async () => {
+    if (!topic.trim()) {
+      alert('Please enter a topic to generate a course.');
+      return;
+    }
 
-const handleGenerate = async () => {
-  if (!topic.trim()) return;
+    setIsGenerating(true);
 
-  setIsGenerating(true);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('You must be logged in.');
+      setIsGenerating(false);
+      return;
+    }
 
-  const token = localStorage.getItem("token");
-  if (!token) {
-    alert("You must be logged in.");
-    return;
-  }
+    try {
+      // Create folder with a prompt (stored in folder.prompt)
+      const folder = await createFolder(
+        topic,
+        `AI-generated course on ${topic}`,
+        `Create quiz questions about ${topic} for ${courseDifficulty} learners, covering ${focusArea} in ${duration} minutes.`
+      );
 
-  try {
-    const { folder, games } = await createFolderWithGames(
-      topic,
-      `AI-generated course on ${topic}`,
-      `Create quiz questions about ${topic} for ${difficulty} learners, covering ${focusArea} in ${duration} minutes.`,
-    );
+      // Backend only supports durations 5/10/15, so clamp frontend values.
+      const durationInt = parseInt(duration, 10);
+      const backendDuration = durationInt >= 15 ? 15 : durationInt >= 10 ? 10 : 5;
 
-    console.log("📁 Folder created:", folder);
-    console.log("🎮 Games generated:", games);
+      // Generate games for the folder (keep backend as-is)
+      const games = await generateGamesFromFolder(
+        token,
+        folder.id,
+        backendDuration,
+        "en",          // language (or undefined if you want backend default)
+        uiDifficulty,  // "same" | "easier" | "harder"
+        courseDifficulty,
+        []             // avoidKeys
+      );
+      console.log('📁 Folder created:', folder);
+      console.log('🎮 Games generated:', games);
 
-    onNavigate("folder", { folder, games }); // redirect to new folder
-  } catch (err) {
-    console.error("❌ Error generating folder with games:", err);
-    alert("There was a problem generating your course.");
-  } finally {
-    setIsGenerating(false);
-  }
-};
+      onNavigate('folder', { folder, games });
+    } catch (err) {
+      console.error('❌ Error generating folder with games:', err);
+      alert('There was a problem generating your course.');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
-  
   return (
     <div className="p-6 max-w-4xl mx-auto">
       {/* Header */}
@@ -67,7 +85,7 @@ const handleGenerate = async () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Generate Custom Course</h1>
         <p className="text-gray-600 text-lg">Create personalized learning experiences with AI</p>
       </div>
-      
+
       {/* Generation Form */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 mb-8">
         <div className="space-y-6">
@@ -83,7 +101,7 @@ const handleGenerate = async () => {
               placeholder="Enter any topic you're curious about..."
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
             />
-            
+
             {/* Suggested Topics */}
             <div className="mt-3">
               <p className="text-xs text-gray-500 mb-2">Popular topics:</p>
@@ -93,6 +111,7 @@ const handleGenerate = async () => {
                     key={suggestedTopic}
                     onClick={() => setTopic(suggestedTopic)}
                     className="px-3 py-1 text-xs bg-gray-100 hover:bg-teal-100 text-gray-700 hover:text-teal-700 rounded-full transition-colors"
+                    type="button"
                   >
                     {suggestedTopic}
                   </button>
@@ -100,25 +119,47 @@ const handleGenerate = async () => {
               </div>
             </div>
           </div>
-          
+
           {/* Configuration Options */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Difficulty */}
+            {/* UI Difficulty (maps to backend field "difficulty") */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Difficulty Level
+                Question Difficulty
               </label>
               <select
-                value={difficulty}
-                onChange={(e) => setDifficulty(e.target.value)}
+                value={uiDifficulty}
+                onChange={(e) => setUiDifficulty(e.target.value as UiDifficulty)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              >
+                <option value="same">Same</option>
+                <option value="easier">Easier</option>
+                <option value="harder">Harder</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                This adjusts how challenging the questions are, relative to the course level.
+              </p>
+            </div>
+
+            {/* Course Difficulty (maps to backend field "courseDifficulty") */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Course Level
+              </label>
+              <select
+                value={courseDifficulty}
+                onChange={(e) => setCourseDifficulty(e.target.value as CourseDifficulty)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
               >
                 <option value="beginner">Beginner</option>
                 <option value="intermediate">Intermediate</option>
                 <option value="advanced">Advanced</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                This sets the baseline level (beginner/intermediate/advanced).
+              </p>
             </div>
-            
+
             {/* Duration */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -134,10 +175,13 @@ const handleGenerate = async () => {
                 <option value="60">1 hour</option>
                 <option value="120">2 hours</option>
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Backend currently supports 5/10/15 minutes; larger selections will map to 15.
+              </p>
             </div>
-            
+
             {/* Focus Area */}
-            <div>
+            <div className="md:col-span-3">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Focus Area
               </label>
@@ -153,16 +197,17 @@ const handleGenerate = async () => {
               </select>
             </div>
           </div>
-          
+
           {/* Generate Button */}
           <button
             onClick={handleGenerate}
             disabled={!topic.trim() || isGenerating}
             className="w-full bg-teal-500 hover:bg-teal-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium py-4 px-6 rounded-xl transition-colors flex items-center justify-center space-x-2"
+            type="button"
           >
             {isGenerating ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
                 <span>Generating your course...</span>
               </>
             ) : (
@@ -175,7 +220,7 @@ const handleGenerate = async () => {
           </button>
         </div>
       </div>
-      
+
       {/* Features */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="text-center p-6">
@@ -187,7 +232,7 @@ const handleGenerate = async () => {
             Advanced AI creates personalized lessons tailored to your learning style and goals
           </p>
         </div>
-        
+
         <div className="text-center p-6">
           <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <Target className="h-6 w-6 text-green-600" />
@@ -197,7 +242,7 @@ const handleGenerate = async () => {
             Courses adjust difficulty and pacing based on your progress and understanding
           </p>
         </div>
-        
+
         <div className="text-center p-6">
           <div className="w-12 h-12 bg-teal-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <Users className="h-6 w-6 text-teal-600" />
@@ -208,18 +253,21 @@ const handleGenerate = async () => {
           </p>
         </div>
       </div>
-      
+
       {/* Loading State */}
       {isGenerating && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4 text-center">
             <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Creating Your Course</h3>
             <p className="text-gray-600 mb-4">Our AI is crafting personalized lessons just for you...</p>
             <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-teal-500 h-2 rounded-full transition-all duration-1000 animate-pulse" style={{ width: '60%' }}></div>
+              <div
+                className="bg-teal-500 h-2 rounded-full transition-all duration-1000 animate-pulse"
+                style={{ width: '60%' }}
+              />
             </div>
           </div>
         </div>
